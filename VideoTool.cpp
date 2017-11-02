@@ -5,6 +5,13 @@
 #include "opencv2/highgui/highgui.hpp"
 //#include <opencv2\cv.h>
 #include "opencv2/opencv.hpp"
+#include <stdio.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include<unistd.h>
+#define PORT 20236
 
 using namespace std;
 using namespace cv;
@@ -31,6 +38,44 @@ const std::string windowName2 = "Thresholded Image";
 const std::string windowName3 = "After Morphological Operations";
 const std::string trackbarWindowName = "Trackbars";
 
+void socket_client(char *position)
+{
+    struct sockaddr_in address;
+    int sock = 0, valread;
+    struct sockaddr_in serv_addr;
+    char buffer[1024] = {0}, string_[50];
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        cout<<"\n Socket creation error \n";
+        exit(1);
+    }
+  
+    memset(&serv_addr, '0', sizeof(serv_addr));
+  
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+      
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, "193.226.12.217", &serv_addr.sin_addr)<=0) 
+    {
+        cout<<"\nInvalid address/ Address not supported \n";
+        exit(1);
+    }
+  
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    {
+        cout<<"\nConnection Failed \n";
+        exit(1);
+    }
+    for(int i = 0; i < strlen(position); i++){
+        sprintf(string_, "%c", position[i]);
+        send(sock , string_, strlen(string_) , 0 );
+        printf("%s message sent\n", string_);
+        sleep(1);
+        send(sock, "s", 1, 0);
+        cout<<"Stop message sent\n";
+   }
+}
 
 void on_mouse(int e, int x, int y, int d, void *ptr)
 {
@@ -177,7 +222,7 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed) {
 }
 int main(int argc, char* argv[])
 {
-
+/*
 	//some boolean variables for different functionality within this
 	//program
 	bool trackObjects = true;
@@ -236,7 +281,10 @@ int main(int argc, char* argv[])
 		//image will not appear without this waitKey() command
 		waitKey(30);
 	}
-
+*/
+  socket_client("flbr");
+  
+  
 	return 0;
 }
 
