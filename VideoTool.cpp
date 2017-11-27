@@ -1,17 +1,17 @@
 #include <sstream>
 #include <string>
 #include <iostream>
-//#include <opencv2\highgui.h>
+//#include <opencv2/highgui.h>
 #include "opencv2/highgui/highgui.hpp"
-//#include <opencv2\cv.h>
-#include "opencv2/opencv.hpp"
+//#include <opencv2/cv.h>
+#include <opencv2/opencv.hpp>
 #include <stdio.h>
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include<unistd.h>
-#define PORT 20236
+#define PORT 20232
 
 using namespace std;
 using namespace cv;
@@ -37,6 +37,14 @@ const std::string windowName1 = "HSV Image";
 const std::string windowName2 = "Thresholded Image";
 const std::string windowName3 = "After Morphological Operations";
 const std::string trackbarWindowName = "Trackbars";
+
+//pozitie roboti
+int robotCurrentPosition[2];
+int robotPreviousPosition[2];
+int rivalRobotCurrentPosition[2];
+
+//plansa
+int aproxPlansa[4];
 
 void socket_client(char *position)
 {
@@ -71,7 +79,7 @@ void socket_client(char *position)
         sprintf(string_, "%c", position[i]);
         send(sock , string_, strlen(string_) , 0 );
         printf("%s message sent\n", string_);
-        sleep(1);
+        sleep(0.5);
         send(sock, "s", 1, 0);
         cout<<"Stop message sent\n";
    }
@@ -220,10 +228,9 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed) {
 		else putText(cameraFeed, "TOO MUCH NOISE! ADJUST FILTER", Point(0, 50), 1, 2, Scalar(0, 0, 255), 2);
 	}
 }
-int main(int argc, char* argv[])
-{
-/*
-	//some boolean variables for different functionality within this
+
+void detectareCulori(){
+    //some boolean variables for different functionality within this
 	//program
 	bool trackObjects = true;
 	bool useMorphOps = true;
@@ -238,30 +245,28 @@ int main(int argc, char* argv[])
 	//x and y values for the location of the object
 	int x = 0, y = 0;
 	//create slider bars for HSV filtering
-	createTrackbars();
+	//createTrackbars();
+	//createTrackbars();
 	//video capture object to acquire webcam feed
 	VideoCapture capture;
 	//open capture object at location zero (default location for webcam)
-	capture.open(rtmp://172.16.254.99/live/nimic);
+	capture.open("rtmp://172.16.254.99/live/nimic");
 	//set height and width of capture frame
 	capture.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
 	capture.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
+        
+        
 	//start an infinite loop where webcam feed is copied to cameraFeed matrix
 	//all of our operations will be performed within this loop
-
-
-
-	
-	while (1) {
-
-
+        while(1){
+                int countObject = 0;
 		//store image to matrix
 		capture.read(cameraFeed);
 		//convert frame from BGR to HSV colorspace
 		cvtColor(cameraFeed, HSV, COLOR_BGR2HSV);
 		//filter HSV image between values and store filtered image to
 		//threshold matrix
-		inRange(HSV, Scalar(163, 0, 0), Scalar(256, 256, 256), threshold);
+     inRange(HSV, Scalar(163, 0, 0), Scalar(256, 256, 256), threshold);
 		//perform morphological operations on thresholded image to eliminate noise
 		//and emphasize the filtered object(s)
 		if (useMorphOps)
@@ -269,10 +274,15 @@ int main(int argc, char* argv[])
 		//pass in thresholded frame to our object tracking function
 		//this function will return the x and y coordinates of the
 		//filtered object
-		if (trackObjects)
+		if (trackObjects){
 			trackFilteredObject(x, y, threshold, cameraFeed);
+                        countObject++;
+                }
+                
+                robotCurrentPosition[0] = x;
+                robotCurrentPosition[1] = y;
       
-    inRange(HSV, Scalar(0, 0, 208), Scalar(256, 256, 256), threshold);
+                inRange(HSV, Scalar(0, 0, 208), Scalar(256, 256, 256), threshold);
 		//perform morphological operations on thresholded image to eliminate noise
 		//and emphasize the filtered object(s)
 		if (useMorphOps)
@@ -280,10 +290,12 @@ int main(int argc, char* argv[])
 		//pass in thresholded frame to our object tracking function
 		//this function will return the x and y coordinates of the
 		//filtered object
-		if (trackObjects)
+		if (trackObjects){
 			trackFilteredObject(x, y, threshold, cameraFeed);
-
-		//show frames
+                        countObject++;
+                }
+                
+                //show frames
 		imshow(windowName2, threshold);
 		imshow(windowName, cameraFeed);
 		//imshow(windowName1, HSV);
@@ -291,10 +303,77 @@ int main(int argc, char* argv[])
 		//delay 30ms so that screen can refresh.
 		//image will not appear without this waitKey() command
 		waitKey(30);
-	}
-*/
-  socket_client("flbr");
-  
+                
+                if(countObject < 2){
+                    printf(" End game! ");
+                    
+                }
+                else{
+                      if(countObject == 2) 
+                          
+                     rivalRobotCurrentPosition[0] = x;
+                     rivalRobotCurrentPosition[1] = y;
+                     
+                }
+                
+        }
+}
+
+void aproximareSuprafata(){
+    aproxPlansa[0] = robotCurrentPosition[0];
+    aproxPlansa[1] = robotCurrentPosition[1];
+    aproxPlansa[2] = rivalRobotCurrentPosition[0];
+    aproxPlansa[3] = rivalRobotCurrentPosition[1];     
+}
+
+void determinarePas(){
+    if(rivalRobotCurrentPosition[0] > robotCurrentPosition[0] && rivalRobotCurrentPosition[1] < robotCurrentPosition[1]){
+          socket_client("f");
+    }  
+    else if(rivalRobotCurrentPosition[0] == robotCurrentPosition[0] && rivalRobotCurrentPosition[1] < robotCurrentPosition[1]){
+          socket_client("dfdf");
+    }  
+    else if(rivalRobotCurrentPosition[0] < robotCurrentPosition[0] && rivalRobotCurrentPosition[1] < robotCurrentPosition[1]){
+          socket_client("df");
+    } 
+    else if(rivalRobotCurrentPosition[0] < robotCurrentPosition[0] && rivalRobotCurrentPosition[1] == robotCurrentPosition[1]){
+          socket_client("dfdf");
+    }   
+    else if(rivalRobotCurrentPosition[0] < robotCurrentPosition[0] && rivalRobotCurrentPosition[1] > robotCurrentPosition[1]){
+          socket_client("ddf");
+    }  
+    else if(rivalRobotCurrentPosition[0] == robotCurrentPosition[0] && rivalRobotCurrentPosition[1] > robotCurrentPosition[1]){
+          socket_client("sfsf");
+    }
+    else if(rivalRobotCurrentPosition[0] > robotCurrentPosition[0] && rivalRobotCurrentPosition[1] > robotCurrentPosition[1]){
+          socket_client("sf");
+    }  
+    else {
+          socket_client("sfsf");
+    }       
+}
+
+void verificarePozitie(){
+    
+}
+
+void battle(){
+	
+         detectareCulori();
+        // determinarePozitie();
+         aproximareSuprafata();
+         while(1){
+             detectareCulori();
+             determinarePas();
+          //   verificarePozitie();
+         }
+        // socket_client("flbr");
+	
+}
+
+int main(int argc, char* argv[])
+{
+        battle();
   
 	return 0;
 }
