@@ -317,11 +317,13 @@ void detectareCulori(){
                     
                 }
                 else{
-                      if(countObject == 2) 
-                          
-                     rivalRobotCurrentPosition[0] = x;
-                     rivalRobotCurrentPosition[1] = y;
+                      if(countObject == 2){
+                       
+				rivalRobotCurrentPosition[0] = x;
+                     		rivalRobotCurrentPosition[1] = y;
                      
+				break;
+		      }
                 }
                 
         }
