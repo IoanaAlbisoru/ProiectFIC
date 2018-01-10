@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include<unistd.h>
+#include <unistd.h>
 #define PORT 20232
 
 using namespace std;
@@ -229,6 +229,13 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed) {
 	}
 }
 
+/*
+	nume functie: detectareCulori
+	functionalitate: Verifica daca cele doua culori ale roboteilor se afla pe plansa si 
+			seteaza pozitiile curente ale robotilor.
+*/
+
+
 void detectareCulori(){
     //some boolean variables for different functionality within this
 	//program
@@ -266,7 +273,7 @@ void detectareCulori(){
 		cvtColor(cameraFeed, HSV, COLOR_BGR2HSV);
 		//filter HSV image between values and store filtered image to
 		//threshold matrix
-     inRange(HSV, Scalar(163, 0, 0), Scalar(256, 256, 256), threshold);
+    		inRange(HSV, Scalar(163, 0, 0), Scalar(256, 256, 256), threshold);
 		//perform morphological operations on thresholded image to eliminate noise
 		//and emphasize the filtered object(s)
 		if (useMorphOps)
@@ -306,6 +313,7 @@ void detectareCulori(){
                 
                 if(countObject < 2){
                     printf(" End game! ");
+		    exit(0);
                     
                 }
                 else{
@@ -319,55 +327,72 @@ void detectareCulori(){
         }
 }
 
-void aproximareSuprafata(){
-    aproxPlansa[0] = robotCurrentPosition[0];
-    aproxPlansa[1] = robotCurrentPosition[1];
-    aproxPlansa[2] = rivalRobotCurrentPosition[0];
-    aproxPlansa[3] = rivalRobotCurrentPosition[1];     
+/*
+	nume functie: determinarePozitie
+	functionalitate: Verifica, la inceputul "jocului" orientarea robotului pe plansa 
+			si se trateaza doar cazurile in care orientarea nu e "buna".
+*/
+void determinarePozitie(){ 
+	socket_client("f");
+	robotPreviousPosition[0] = robotCurrentPosition[0];
+	robotPreviousPosition[1] = robotCurrentPosition[1];
+	detectareCulori();
+	if(robotPreviousPosition[0] < robotCurrentPosition[0] && robotPreviousPosition[1] < robotCurrentPosition[1]) //orientare Nord-Est
+		socket_client("rf");
+	else if(robotPreviousPosition[0] == robotCurrentPosition[0] && robotPreviousPosition[1] < robotCurrentPosition[1]) // orientare Nord
+			socket_client("rfrf");
+	else if(robotPreviousPosition[0] > robotCurrentPosition[0] && robotPreviousPosition[1] < robotCurrentPosition[1]) // orientare Nord-Vest
+			socket_client("rfrf");
+	else if(robotPreviousPosition[0] > robotCurrentPosition[0] && robotPreviousPosition[1] == robotCurrentPosition[1]) // orientare Vest
+			socket_client("lf");
+	else if(robotPreviousPosition[0] > robotCurrentPosition[0] && robotPreviousPosition[1] > robotCurrentPosition[1]) // orientare Sud-Vest
+			socket_client("lf");
 }
+
+/*
+	nume functie: determinarePas
+	functionalitate: In functie de pozitia robotului nostru fata de cel oponent, se ia decizia pasului 
+			pe care il va face robotul nostru pentru a se apropia de cel advers.
+*/
 
 void determinarePas(){
     if(rivalRobotCurrentPosition[0] > robotCurrentPosition[0] && rivalRobotCurrentPosition[1] < robotCurrentPosition[1]){
           socket_client("f");
     }  
     else if(rivalRobotCurrentPosition[0] == robotCurrentPosition[0] && rivalRobotCurrentPosition[1] < robotCurrentPosition[1]){
-          socket_client("dfdf");
+          socket_client("rfrf");
     }  
     else if(rivalRobotCurrentPosition[0] < robotCurrentPosition[0] && rivalRobotCurrentPosition[1] < robotCurrentPosition[1]){
-          socket_client("df");
+          socket_client("rf");
     } 
     else if(rivalRobotCurrentPosition[0] < robotCurrentPosition[0] && rivalRobotCurrentPosition[1] == robotCurrentPosition[1]){
-          socket_client("dfdf");
+          socket_client("rfrf");
     }   
     else if(rivalRobotCurrentPosition[0] < robotCurrentPosition[0] && rivalRobotCurrentPosition[1] > robotCurrentPosition[1]){
-          socket_client("ddf");
+          socket_client("rrf");
     }  
     else if(rivalRobotCurrentPosition[0] == robotCurrentPosition[0] && rivalRobotCurrentPosition[1] > robotCurrentPosition[1]){
-          socket_client("sfsf");
+          socket_client("lflf");
     }
     else if(rivalRobotCurrentPosition[0] > robotCurrentPosition[0] && rivalRobotCurrentPosition[1] > robotCurrentPosition[1]){
-          socket_client("sf");
+          socket_client("lf");
     }  
     else {
-          socket_client("sfsf");
+          socket_client("lflf");
     }       
 }
-
-void verificarePozitie(){
-    
-}
-
+/*
+	nume functie: battle
+	functionalitate: Algoritmul propriu-zis de lupta. 
+*/
 void battle(){
 	
          detectareCulori();
-        // determinarePozitie();
-         aproximareSuprafata();
+         determinarePozitie();
          while(1){
              detectareCulori();
              determinarePas();
-          //   verificarePozitie();
-         }
-        // socket_client("flbr");
+    	}
 	
 }
 
